@@ -3,7 +3,7 @@ import 'package:udpserial/udpserial.dart';
 void main(List<String> arguments) async {
   final int tam = arguments.length;
   UdpSerial(
-    udpHost: tam > 0 ? arguments[0] : "inindkit0",
+    udpHost: tam > 0 ? arguments[0] : "10.0.64.28",
     udpPort: tam > 1 ? int.parse(arguments[1]): 4000,
     serialPort: tam > 2 ? arguments[2] : "CNCA0",
     baudRate: tam > 3 ? int.parse(arguments[3]):  1200,

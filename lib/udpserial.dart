@@ -5,9 +5,9 @@ import 'package:libserialport/libserialport.dart';
 
 class UdpSerial {
   SerialPort? _sp;
-  SerialPortReader? _reader; 
+  SerialPortReader? _reader;
   final Completer<List<InternetAddress>> addressCompleter =
-      Completer<List<InternetAddress>>();   
+      Completer<List<InternetAddress>>();
   final Completer<RawDatagramSocket> configCompleter =
       Completer<RawDatagramSocket>();
   final String udpHost;
@@ -29,21 +29,27 @@ class UdpSerial {
     _init();
   }
   Future<void> _init() async {
-    if (!addressCompleter.isCompleted) {     
+    if (!addressCompleter.isCompleted) {
       addressCompleter.complete(InternetAddress.lookup(udpHost));
-    }   
-    if (!configCompleter.isCompleted) { 
-      final serverAddress = (await addressCompleter.future).first;    
-      configCompleter.complete(RawDatagramSocket.bind(serverAddress.address, udpPort));
     }
+    if (!configCompleter.isCompleted) {
+      configCompleter
+          .complete(RawDatagramSocket.bind(InternetAddress.anyIPv4, udpPort));
+    }
+    final udpSocket = await configCompleter.future;
+    print('UDP conected on Serial');
+    print('UDP:127.0.0.1:${udpSocket.port}');
     openSerial(serialPort,
         baudRate: baudRate,
         bytesize: bytesize,
         parity: parity,
         stopbits: stopbits);
+    print('Serial: $serialPort, $baudRate, $bytesize, $parity,$stopbits');
+    //send([255,255,0,0,255,255,0,0]);
+    await listen();
   }
 
-  listen(final void Function(String message) readMensagem) async {
+  listen() async {
     final udpSocket = await configCompleter.future;
     udpSocket.listen((RawSocketEvent event) {
       if (event == RawSocketEvent.read) {
@@ -55,9 +61,11 @@ class UdpSerial {
     });
   }
 
-  send(Uint8List data) async {
+  send(List<int> data) async {
     final udpSocket = await configCompleter.future;
-    final serverAddress = (await addressCompleter.future).first;    
+    final serverAddress = (await addressCompleter.future).first;
+    print(
+        'UDP Send: ${data.map((e) => e.toRadixString(16).padLeft(2, '0')).join(" ").toUpperCase()} on ${serverAddress.address}');
     udpSocket.send(data, serverAddress, udpPort);
   }
 
@@ -69,14 +77,16 @@ class UdpSerial {
       _reader = SerialPortReader(_sp!);
       if (_reader != null) {
         _reader!.stream.listen((Uint8List data) {
-          send(data);
+          if (data.isNotEmpty) {
+            send(data.toList());
+          }
         });
       }
       _sp!.openReadWrite();
       SerialPortConfig config = _sp!.config;
-      config.setFlowControl(SerialPortFlowControl.rtsCts);
-      config.cts = SerialPortCts.flowControl;
-      config.rts = SerialPortRts.flowControl;
+      //config.setFlowControl(SerialPortFlowControl.rtsCts);
+      //config.cts = SerialPortCts.flowControl;
+      //config.rts = SerialPortRts.flowControl;
       //config.xonXoff = SerialPortXonXoff.inOut;
       if (baudRate != null) {
         config.baudRate = baudRate;
@@ -109,7 +119,11 @@ class UdpSerial {
             print(SerialPort.lastError);
           }
         }
-        if (tam >= write.length) return true;
+        if (tam >= write.length) {
+          print(
+              'UDP Recive: ${write.map((e) => e.toRadixString(16).padLeft(2, '0')).join(" ").toUpperCase()}');
+          return true;
+        }
       }
     }
     return false;
