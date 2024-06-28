@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:libserialport/libserialport.dart';
 
 class UdpSerial {
+  bool isConnected = false;
   SerialPort? _sp;
   SerialPortReader? _reader;
   final Completer<List<InternetAddress>> addressCompleter =
@@ -37,16 +38,18 @@ class UdpSerial {
           .complete(RawDatagramSocket.bind(InternetAddress.anyIPv4, udpPort));
     }
     final udpSocket = await configCompleter.future;
-    print('UDP conected on Serial');
+    print('UDP to serial connection tool');
     print('UDP:127.0.0.1:${udpSocket.port}');
     openSerial(serialPort,
         baudRate: baudRate,
         bytesize: bytesize,
         parity: parity,
         stopbits: stopbits);
-    print('Serial: $serialPort, $baudRate, $bytesize, $parity,$stopbits');
-    //send([255,255,0,0,255,255,0,0]);
+    print(
+        'Serial: port:$serialPort, baudRate:$baudRate, bytesize:$bytesize, parity:$parity, stopbits:$stopbits');
+    final serverAddress = (await addressCompleter.future).first;
     await listen();
+    udpSocket.send([255, 255, 0, 0, 255, 255, 0, 0], serverAddress, udpPort);
   }
 
   listen() async {
@@ -114,7 +117,20 @@ class UdpSerial {
       if (_sp!.isOpen) {
         if (write.isNotEmpty) {
           try {
-            tam = _sp!.write(write, timeout: 0);
+            if (write.length == 8 &&
+                write[0] == 255 &&
+                write[1] == 255 &&
+                write[2] == 0 &&
+                write[3] == 0 &&
+                write[4] == 255 &&
+                write[5] == 255 &&
+                write[6] == 0 &&
+                write[7] == 0) {
+              isConnected = true;
+              print('Connection OK');
+            } else {
+              tam = _sp!.write(write, timeout: 0);
+            }
           } on SerialPortError catch (err, _) {
             print(SerialPort.lastError);
           }
