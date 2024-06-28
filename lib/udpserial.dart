@@ -37,9 +37,10 @@ class UdpSerial {
       configCompleter
           .complete(RawDatagramSocket.bind(InternetAddress.anyIPv4, udpPort));
     }
+    final serverAddress = (await addressCompleter.future).first;    
     final udpSocket = await configCompleter.future;
     print('UDP to serial connection tool');
-    print('UDP:127.0.0.1:${udpSocket.port}');
+    print('UDP:${serverAddress.address}:${udpSocket.port}');
     openSerial(serialPort,
         baudRate: baudRate,
         bytesize: bytesize,
@@ -47,7 +48,6 @@ class UdpSerial {
         stopbits: stopbits);
     print(
         'Serial: port:$serialPort, baudRate:$baudRate, bytesize:$bytesize, parity:$parity, stopbits:$stopbits');
-    final serverAddress = (await addressCompleter.future).first;
     await listen();
     udpSocket.send([255, 255, 0, 0, 255, 255, 0, 0], serverAddress, udpPort);
   }
