@@ -37,10 +37,10 @@ class UdpSerial {
       configCompleter
           .complete(RawDatagramSocket.bind(InternetAddress.anyIPv4, udpPort));
     }
-    final serverAddress = (await addressCompleter.future).first;    
+    final serverAddress = (await addressCompleter.future).first;
     final udpSocket = await configCompleter.future;
     print('UDP to serial connection tool');
-    print('UDP:${serverAddress.address}:${udpSocket.port}');
+    print('UDP Server: ${serverAddress.address}:${udpSocket.port}');
     openSerial(serialPort,
         baudRate: baudRate,
         bytesize: bytesize,
@@ -58,7 +58,22 @@ class UdpSerial {
       if (event == RawSocketEvent.read) {
         Datagram? datagram = udpSocket.receive();
         if (datagram != null) {
-          writeSerial(datagram.data);
+          if (datagram.data.length == 8 &&
+              datagram.data[0] == 255 &&
+              datagram.data[1] == 255 &&
+              datagram.data[2] == 0 &&
+              datagram.data[3] == 0 &&
+              datagram.data[4] == 255 &&
+              datagram.data[5] == 255 &&
+              datagram.data[6] == 0 &&
+              datagram.data[7] == 0) {
+            isConnected = true;
+            print('Connection OK');
+          } else {
+            print(
+                'UDP Recive: ${datagram.data.map((e) => e.toRadixString(16).padLeft(2, '0')).join(" ").toUpperCase()}');
+            writeSerial(datagram.data);
+          }
         }
       }
     });
@@ -117,27 +132,12 @@ class UdpSerial {
       if (_sp!.isOpen) {
         if (write.isNotEmpty) {
           try {
-            if (write.length == 8 &&
-                write[0] == 255 &&
-                write[1] == 255 &&
-                write[2] == 0 &&
-                write[3] == 0 &&
-                write[4] == 255 &&
-                write[5] == 255 &&
-                write[6] == 0 &&
-                write[7] == 0) {
-              isConnected = true;
-              print('Connection OK');
-            } else {
-              tam = _sp!.write(write, timeout: 0);
-            }
+            tam = _sp!.write(write, timeout: 0);
           } on SerialPortError catch (err, _) {
             print(SerialPort.lastError);
           }
         }
         if (tam >= write.length) {
-          print(
-              'UDP Recive: ${write.map((e) => e.toRadixString(16).padLeft(2, '0')).join(" ").toUpperCase()}');
           return true;
         }
       }
