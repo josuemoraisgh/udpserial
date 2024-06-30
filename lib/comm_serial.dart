@@ -9,7 +9,8 @@ class CommSerial {
   bool get isOpen => _sp == null ? false : _sp!.isOpen;
 
   void listenReader(void Function(Uint8List) dataFunc) {
-    if (_reader != null) {
+    if (_sp != null) {
+      _reader = SerialPortReader(_sp!);
       _reader!.stream.listen(dataFunc);
     }
   }

@@ -8,7 +8,7 @@ bool isConnected = false;
 final serial = CommSerial();
 final udp = CommUdp();
 
-void funcWrite(Datagram? datagram) {
+void funcUdp(Datagram? datagram) {
   if (datagram != null) {
     if (datagram.data.length == 8 &&
         datagram.data[0] == 255 &&
@@ -29,6 +29,10 @@ void funcWrite(Datagram? datagram) {
   }
 }
 
+void funcSerial(Uint8List data) {
+  udp.send(data.toList());
+}
+
 Future<void> main(List<String> arguments) async {
   final int tam = arguments.length;
   print('UDP to serial connection tool');
@@ -43,9 +47,7 @@ Future<void> main(List<String> arguments) async {
     udpHost: tam > 0 ? arguments[0] : "10.0.64.28",
     udpPort: tam > 1 ? int.parse(arguments[1]) : 4000,
   );
-
-  udp.listenReader(funcWrite);
-  serial.listenReader((Uint8List data) {
-    udp.send(data.toList());
-  });
+  
+  serial.listenReader(funcSerial);
+  udp.listenReader(funcUdp);
 }
