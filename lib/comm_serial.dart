@@ -42,10 +42,8 @@ class CommSerial {
           'Serial: port:$serialPort, baudRate:$baudRate, bytesize:$bytesize, parity:$parity, stopbits:$stopbits');
       _sp!.openReadWrite();
       SerialPortConfig config = _sp!.config;
-      //config.setFlowControl(SerialPortFlowControl.rtsCts);
-      //config.cts = SerialPortCts.flowControl;
-      //config.rts = SerialPortRts.flowControl;
-      //config.xonXoff = SerialPortXonXoff.inOut;
+      config.cts = SerialPortCts.flowControl;
+      config.rts = SerialPortRts.flowControl;
       if (baudRate != null) {
         config.baudRate = baudRate;
       }
